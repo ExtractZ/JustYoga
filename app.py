@@ -89,6 +89,8 @@ def generate_frames():
         frame = cv2.flip(frame, 1)
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = pose.process(rgb_frame)
+
+        # Use the updated current_pose_name to fetch reference landmarks
         reference_landmarks = pose_library.get_reference_landmarks(pose_library.current_pose_name)
 
         # Draw Mediapipe pose landmarks
@@ -138,6 +140,7 @@ def generate_frames():
 
 
 
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -152,6 +155,28 @@ def video_feed():
 def cycle_pose():
     next_pose = pose_library.cycle_pose()
     return jsonify({"pose_name": next_pose})
+
+@app.route("/get_pose_list", methods=["POST"])
+def get_pose_list():
+    """Return a list of up to 5 pose names for the circuit."""
+    pose_names = list(pose_library.poses.keys())
+    if not pose_names:
+        return jsonify({"error": "No poses available"}), 400
+    # Select up to 5 poses for the circuit
+    circuit_poses = pose_names[:5]
+    return jsonify({"poses": circuit_poses})
+
+@app.route("/set_current_pose", methods=["POST"])
+def set_current_pose():
+    """Set the current pose for overlay."""
+    data = request.get_json()
+    pose_name = data.get("pose_name")
+
+    if pose_name not in pose_library.poses:
+        return jsonify({"error": f"Pose '{pose_name}' not found"}), 400
+
+    pose_library.current_pose_name = pose_name
+    return jsonify({"message": f"Current pose set to '{pose_name}'"})
 
 
 if __name__ == "__main__":

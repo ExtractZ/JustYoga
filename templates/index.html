@@ -4,14 +4,84 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yoga Pose Practice</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        img {
+            display: block;
+            margin: 0 auto;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
     <script>
+        let poseIndex = 0;
+        let poses = [];
+        let circuitInterval;
+
+        // Fetches the next pose from the server
         function cyclePose() {
-            fetch('/cycle_pose', { method: 'POST' })
+            return fetch('/cycle_pose', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById("current-pose").innerText = "Current Pose: " + data.pose_name;
                 });
         }
+
+        function startCircuit() {
+            poseIndex = 0;
+            clearInterval(circuitInterval); // Clear any existing intervals
+
+            // Fetch the list of 5 poses before starting the circuit
+            fetch('/get_pose_list', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    poses = data.poses; // Array of pose names
+                    if (poses.length === 0) {
+                        alert("No poses available.");
+                        return;
+                    }
+                    runCircuit();
+                })
+                .catch(error => {
+                    console.error('Error fetching pose list:', error);
+                });
+        }
+
+        function runCircuit() {
+            if (poses.length === 0) {
+                console.error('No poses available for the circuit.');
+                return;
+            }
+
+            function updatePoseAndOverlay() {
+                const currentPose = poses[poseIndex];
+                document.getElementById("current-pose").innerText = "Current Pose: " + currentPose;
+
+                // Update the server with the current pose
+                fetch('/set_current_pose', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pose_name: currentPose })
+                }).catch(error => console.error("Error updating current pose:", error));
+
+                poseIndex = (poseIndex + 1) % poses.length;
+
+                // Stop the circuit after one loop (optional: remove this to loop continuously)
+                if (poseIndex === 0) {
+                    clearInterval(circuitInterval);
+                }
+            }
+
+            updatePoseAndOverlay(); // Update immediately
+            circuitInterval = setInterval(updatePoseAndOverlay, 5000); // Update every 15 seconds
+        }
+
     </script>
 </head>
 <body>
@@ -19,7 +89,8 @@
     <div>
         <p id="current-pose">Current Pose: Loading...</p>
         <button onclick="cyclePose()">Next Pose</button>
+        <button onclick="startCircuit()">Start Circuit</button>
     </div>
-    <img src="/video_feed" width="800">
+    <img src="/video_feed" width="800" alt="Yoga Pose Feed">
 </body>
 </html>
