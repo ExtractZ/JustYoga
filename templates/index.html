@@ -83,7 +83,7 @@ background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(51,177,158,0.39
             poseIndex = 0;
             clearInterval(circuitInterval); // Clear any existing intervals
             clearInterval(countdownInterval); // Clear the countdown timer
-
+            playAudio();
             // Fetch the list of 5 poses before starting the circuit
             fetch('/get_pose_list', { method: 'POST' })
                 .then(response => response.json())
@@ -101,7 +101,14 @@ background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(51,177,158,0.39
                     console.error('Error fetching pose list:', error);
                 });
         }
-
+        function playAudio(){
+            var audio = document.getElementById('myAudio');
+            if (audio.paused) {
+                audio.play();
+            } else {
+                audio.pause();
+            }
+        }
         function runCircuit() {
             if (poses.length === 0) {
                 console.error('No poses available for the circuit.');
@@ -164,9 +171,15 @@ background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(51,177,158,0.39
     </script>
 </head>
 <body>
+    
+    
+    
     <div class="pose-count">
         <h1 style="font-family: 'Inter', sans-serif;">Just Yoga</h1>
-        
+        <audio id="myAudio">
+            <source src="static/music/music.mp3" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
         <div>
             <p id="status-match">Match: Loading...</p>
             <p id="status-pose"></p>
