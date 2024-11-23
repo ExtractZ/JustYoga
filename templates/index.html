@@ -10,12 +10,13 @@
         body {
             
             font-family: 'Montserrat', sans-serif;
-            background: rgb(255,255,255);
-background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(51,177,158,0.3943441901408451) 87%, rgba(0,212,255,1) 100%);
+            background: rgb(247,247,247);
+background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba(70,255,235,0.4788512323943662) 92%, rgba(0,255,210,0.4506822183098591) 100%);
             height: 100vh;
             background-size: cover;
             background-position: center;
             padding-left: 10px;
+            padding-right: 10px;
         }
         img {
             display: block;
@@ -60,6 +61,18 @@ background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(51,177,158,0.39
     .pose-count {
         display: flex;
         justify-content: space-between;
+    }
+
+    .pose-status {
+        display: none;
+    }
+
+    .button-container {
+        margin-top: 15px;
+    }
+
+    .score-status {
+        font-family: 'Inter'
     }
 
     </style>
@@ -159,9 +172,9 @@ background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(51,177,158,0.39
             fetch("/get_status")
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById("status-match").innerText = `Match: ${data.match.toFixed(1)}%`;
+                    document.getElementById("status-match").innerText = `Score: ${data.match.toFixed(1)}%`;
                     document.getElementById("status-pose").innerText = `Pose: ${data.pose}`;
-                    document.getElementById("status-best-match").innerText = `Best Match: ${data.best_match.toFixed(1)}%`;
+                    document.getElementById("status-best-match").innerText = `Best Score: ${data.best_match.toFixed(1)}%`;
                 })
                 .catch(error => console.error("Error fetching status:", error));
         }
@@ -180,10 +193,10 @@ background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(51,177,158,0.39
             <source src="static/music/music.mp3" type="audio/mpeg">
             Your browser does not support the audio element.
         </audio>
-        <div>
-            <p id="status-match">Match: Loading...</p>
-            <p id="status-pose"></p>
-            <p id="status-best-match">Best Match: Loading...</p>
+        <div style="display: flex; margin-top: 0px; ">
+            <h1 class="score-status" id="status-match" style="padding-right: 15px; ">Score: Loading...</h1>
+            <p class="pose-status" id="status-pose"></p>
+            <h1 class="score-status" id="status-best-match">Best Score: Loading...</h1>
           </div>
         
     </div>
@@ -193,15 +206,15 @@ background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(51,177,158,0.39
         
         
     </div>
-    <div style="display: flex; align-items: center;">
-        <p id="current-pose" style="margin-right: 20px;">Current Pose: Loading...</p>
-        <p id="countdown">Next Pose in: 15s</p>
+    <div class="main-container" style=" align-items: center; padding-top: 50px;">
+        <h1 id="current-pose" style="margin-right: 20px;">Current Pose: Loading...</h1>
+        <h1 id="countdown">Next Pose in: 15s</h1>
     </div>
     <div class="main-container">
         <img src="/video_feed" width="800" alt="Yoga Pose Feed">
 
 
-        <div>
+        <div class="button-container">
             <button class="glass-button" onclick="cyclePose()">Next Pose</button>
             <button class="glass-button" onclick="startCircuit()">Start Circuit</button>
         </div>
