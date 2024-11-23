@@ -196,12 +196,12 @@ def draw_status_overlay(frame, match_percentage, pose_tracker, current_pose):
     
     # Draw match percentage
     cv2.putText(frame, f"Match: {match_percentage:.1f}%",
-                (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                (20, 50),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
     
     # Draw current pose name
     cv2.putText(frame, f"Pose: {current_pose}",
-                (10, 70),
+                (20, 90),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
     
     # Draw completion message
@@ -212,9 +212,9 @@ def draw_status_overlay(frame, match_percentage, pose_tracker, current_pose):
     
     # Draw statistics
     stats = pose_tracker.get_stats()
-    y_pos = 110
+    y_pos = 130
     cv2.putText(frame, f"Best Match: {stats['best_match']:.1f}%",
-                (10, y_pos),
+                (20, y_pos),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
     
     y_pos += 30
@@ -321,6 +321,16 @@ def get_pose_list():
     # Select up to 5 poses for the circuit
     circuit_poses = pose_names[:5]
     return jsonify({"poses": circuit_poses})
+
+@app.route("/get_status", methods=["GET"])
+def get_status():
+    """Return the current match, pose, and best match."""
+    return jsonify({
+        "match": pose_tracker.best_match,  # Use the latest match percentage
+        "pose": pose_library.current_pose_name,  # The current pose name
+        "best_match": pose_tracker.get_stats()["best_match"]  # Best match from the tracker
+    })
+
 
 
 if __name__ == "__main__":
