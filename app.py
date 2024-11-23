@@ -54,10 +54,11 @@ class PoseTracker:
         self.completed = False
         self.elapsed_time = 0.0
         self.best_match = 0.0
-
+        self.live_match = 0.0  # Initialize live_match here
 
     def update(self, similarity: float) -> bool:
         """Update pose tracking state with current similarity score"""
+        self.live_match = similarity  # Update live_match each time update is called
         current_time = time.time()
         self.best_match = max(self.best_match, similarity)
         
@@ -65,12 +66,10 @@ class PoseTracker:
             if not self.is_holding:
                 self.start_time = current_time
                 self.is_holding = True
-
             else:
                 self.elapsed_time = current_time - self.start_time
                 if self.elapsed_time >= self.required_hold_time and not self.completed:
                     self.completed = True
-
         else:
             self.is_holding = False
             self.start_time = None
@@ -88,8 +87,18 @@ class PoseTracker:
         """Get current tracking statistics"""
         return {
             "best_match": self.best_match,
-
+            "live_match": self.live_match,  # Include live_match in stats
         }
+
+    def reset(self):
+        """Reset tracker state"""
+        self.start_time = None
+        self.is_holding = False
+        self.completed = False
+        self.elapsed_time = 0.0
+        self.best_match = 0.0
+        self.live_match = 0.0  # Reset live_match
+
 
     def reset(self):
         """Reset tracker state"""
@@ -194,15 +203,15 @@ def draw_status_overlay(frame, match_percentage, pose_tracker, current_pose):
         draw_loading_pie(frame, progress, center, radius)
         
     
-    # Draw match percentage
-    cv2.putText(frame, f"Match: {match_percentage:.1f}%",
-                (20, 50),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+    # # Draw match percentage
+    # cv2.putText(frame, f"Match: {match_percentage:.1f}%",
+    #             (20, 50),
+    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
     
-    # Draw current pose name
-    cv2.putText(frame, f"Pose: {current_pose}",
-                (20, 90),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    # # Draw current pose name
+    # cv2.putText(frame, f"Pose: {current_pose}",
+    #             (20, 90),
+    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
     
     # Draw completion message
     if pose_tracker.completed:
@@ -210,14 +219,14 @@ def draw_status_overlay(frame, match_percentage, pose_tracker, current_pose):
                     (frame.shape[1] // 2 - 150, 50),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     
-    # Draw statistics
-    stats = pose_tracker.get_stats()
-    y_pos = 130
-    cv2.putText(frame, f"Best Match: {stats['best_match']:.1f}%",
-                (20, y_pos),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+    # # Draw statistics
+    # stats = pose_tracker.get_stats()
+    # y_pos = 130
+    # cv2.putText(frame, f"Best Match: {stats['best_match']:.1f}%",
+    #             (20, y_pos),
+    #             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
     
-    y_pos += 30
+    # y_pos += 30
 
 
 pose_library = PoseLibrary('poses')
@@ -326,7 +335,7 @@ def get_pose_list():
 def get_status():
     """Return the current match, pose, and best match."""
     return jsonify({
-        "match": pose_tracker.best_match,  # Use the latest match percentage
+        "match": pose_tracker.live_match,  # Use the latest match percentage
         "pose": pose_library.current_pose_name,  # The current pose name
         "best_match": pose_tracker.get_stats()["best_match"]  # Best match from the tracker
     })
