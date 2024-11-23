@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yoga Pose Practice</title>
+    <script>
+        function cyclePose() {
+            fetch('/cycle_pose', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("current-pose").innerText = "Current Pose: " + data.pose_name;
+                });
+        }
+    </script>
+</head>
+<body>
+    <h1>Yoga Pose Practice</h1>
+    <div>
+        <p id="current-pose">Current Pose: Loading...</p>
+        <button onclick="cyclePose()">Next Pose</button>
+    </div>
+    <img src="/video_feed" width="800">
+</body>
+</html>
