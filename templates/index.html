@@ -18,11 +18,18 @@
             padding: 10px 20px;
             font-size: 16px;
         }
+        #countdown {
+            display: none; /* Initially hidden */
+            font-size: 18px;
+            font-weight: bold;
+        }
     </style>
     <script>
         let poseIndex = 0;
         let poses = [];
         let circuitInterval;
+        let countdownInterval;
+        let countdownTime = 5; // Countdown time in seconds
 
         // Fetches the next pose from the server
         function cyclePose() {
@@ -36,6 +43,7 @@
         function startCircuit() {
             poseIndex = 0;
             clearInterval(circuitInterval); // Clear any existing intervals
+            clearInterval(countdownInterval); // Clear the countdown timer
 
             // Fetch the list of 5 poses before starting the circuit
             fetch('/get_pose_list', { method: 'POST' })
@@ -46,6 +54,8 @@
                         alert("No poses available.");
                         return;
                     }
+                    // Show countdown only when circuit starts
+                    document.getElementById("countdown").style.display = "block";
                     runCircuit();
                 })
                 .catch(error => {
@@ -72,22 +82,39 @@
 
                 poseIndex = (poseIndex + 1) % poses.length;
 
-                // Stop the circuit after one loop (optional: remove this to loop continuously)
+                // Stop the circuit after one loop
                 if (poseIndex === 0) {
                     clearInterval(circuitInterval);
+                    clearInterval(countdownInterval);
+                    document.getElementById("countdown").innerText = "circuit completed";
                 }
             }
 
             updatePoseAndOverlay(); // Update immediately
-            circuitInterval = setInterval(updatePoseAndOverlay, 5000); // Update every 15 seconds
+            circuitInterval = setInterval(updatePoseAndOverlay, countdownTime * 1000); // Update every 15 seconds
+            startCountdown(); // Start the countdown
         }
 
+        function startCountdown() {
+            let remainingTime = countdownTime;
+            document.getElementById("countdown").innerText = `Next Pose in: ${remainingTime}s`;
+
+            countdownInterval = setInterval(() => {
+                remainingTime -= 1;
+                document.getElementById("countdown").innerText = `Next Pose in: ${remainingTime}s`;
+
+                if (remainingTime <= 0) {
+                    remainingTime = countdownTime; // Reset countdown for the next pose
+                }
+            }, 1000);
+        }
     </script>
 </head>
 <body>
     <h1>Yoga Pose Practice</h1>
     <div>
         <p id="current-pose">Current Pose: Loading...</p>
+        <p id="countdown">Next Pose in: 15s</p>
         <button onclick="cyclePose()">Next Pose</button>
         <button onclick="startCircuit()">Start Circuit</button>
     </div>

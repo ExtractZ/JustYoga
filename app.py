@@ -221,7 +221,7 @@ def draw_status_overlay(frame, match_percentage, pose_tracker, current_pose):
 
 
 pose_library = PoseLibrary('poses')
-pose_tracker = PoseTracker(threshold=80.0, hold_time=5.0)
+pose_tracker = PoseTracker(threshold=20.0, hold_time=5.0)
 pose_library.cycle_pose()
 
 def generate_frames():
