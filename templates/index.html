@@ -103,12 +103,18 @@ background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(51,177,158,0.39
         }
         function playAudio(){
             var audio = document.getElementById('myAudio');
-            if (audio.paused) {
+             // Delay the play function for 5000 milliseconds (5 seconds)
+             setTimeout(function() {
                 audio.play();
-            } else {
-                audio.pause();
-            }
+                console.log("Playing audio now.");
+            }, 5000);
         }
+        function stopAudio(){
+            var audio = document.getElementById('myAudio');
+                audio.pause();
+                audio.currentTime = 0;
+            }
+        
         function runCircuit() {
             if (poses.length === 0) {
                 console.error('No poses available for the circuit.');
@@ -132,6 +138,7 @@ background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(51,177,158,0.39
                 if (poseIndex === 0) {
                     clearInterval(circuitInterval);
                     clearInterval(countdownInterval);
+                    stopAudio();
                     document.getElementById("countdown").innerText = "circuit completed";
                 }
             }
