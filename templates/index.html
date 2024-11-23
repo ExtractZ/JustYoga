@@ -7,11 +7,13 @@
     <style>
         body {
             text-align: center;
-            font-family: Arial, sans-serif;
+            font-family: Monteserrat, sans-serif;
         }
         img {
             display: block;
             margin: 0 auto;
+            border-radius: 15px; 
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); 
         }
         button {
             margin: 10px;
@@ -108,6 +110,20 @@
                 }
             }, 1000);
         }
+
+        function fetchStatus() {
+            fetch("/get_status")
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("status-match").innerText = `Match: ${data.match.toFixed(1)}%`;
+                    document.getElementById("status-pose").innerText = `Pose: ${data.pose}`;
+                    document.getElementById("status-best-match").innerText = `Best Match: ${data.best_match.toFixed(1)}%`;
+                })
+                .catch(error => console.error("Error fetching status:", error));
+        }
+
+        // Refresh status every second
+        setInterval(fetchStatus, 500);
     </script>
 </head>
 <body>
@@ -118,6 +134,12 @@
         <button onclick="cyclePose()">Next Pose</button>
         <button onclick="startCircuit()">Start Circuit</button>
     </div>
+    <div>
+      <p id="status-match">Match: Loading...</p>
+      <p id="status-pose">Pose: Loading...</p>
+      <p id="status-best-match">Best Match: Loading...</p>
+    </div>
+  
     <img src="/video_feed" width="800" alt="Yoga Pose Feed">
 </body>
 </html>
