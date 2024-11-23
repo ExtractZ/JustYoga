@@ -300,5 +300,28 @@ def cycle_pose():
         "stats": pose_tracker.get_stats()
     })
 
+@app.route("/set_current_pose", methods=["POST"])
+def set_current_pose():
+    """Set the current pose for overlay."""
+    data = request.get_json()
+    pose_name = data.get("pose_name")
+
+    if pose_name not in pose_library.poses:
+        return jsonify({"error": f"Pose '{pose_name}' not found"}), 400
+
+    pose_library.current_pose_name = pose_name
+    return jsonify({"message": f"Current pose set to '{pose_name}'"})
+
+@app.route("/get_pose_list", methods=["POST"])
+def get_pose_list():
+    """Return a list of up to 5 pose names for the circuit."""
+    pose_names = list(pose_library.poses.keys())
+    if not pose_names:
+        return jsonify({"error": "No poses available"}), 400
+    # Select up to 5 poses for the circuit
+    circuit_poses = pose_names[:5]
+    return jsonify({"poses": circuit_poses})
+
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=3000)
