@@ -52,6 +52,18 @@ background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba
         cursor: pointer; 
         transition: all 0.3s ease; 
     }
+    .glass-button:disabled {
+        background: rgba(255, 255, 255, 0.1); 
+        border: 2px solid rgba(0, 0, 0, 0.5); 
+        border-radius: 19px; 
+        color: grey; 
+        font-size: 16px; 
+        padding: 10px 40px; 
+        font-family: 'Montserrat', sans-serif;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px); 
+        cursor: not-allowed
+    }
 
     .glass-button:hover {
         background: rgba(255, 255, 255, 0.2);
@@ -74,6 +86,7 @@ background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba
     .score-status {
         font-family: 'Inter'
     }
+    
 
     </style>
     <script>
@@ -93,6 +106,7 @@ background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba
         }
 
         function startCircuit() {
+            document.getElementById("start_button").disabled = true;
             poseIndex = 0;
             clearInterval(circuitInterval); // Clear any existing intervals
             clearInterval(countdownInterval); // Clear the countdown timer
@@ -133,7 +147,7 @@ background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba
                 console.error('No poses available for the circuit.');
                 return;
             }
-
+        
             function updatePoseAndOverlay() {
                 const currentPose = poses[poseIndex];
                 document.getElementById("current-pose").innerText = "Current Pose: " + currentPose;
@@ -152,6 +166,7 @@ background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba
                     clearInterval(circuitInterval);
                     clearInterval(countdownInterval);
                     stopAudio();
+                    document.getElementById("start_button").disabled = false;
                     document.getElementById("countdown").innerText = "circuit completed";
                 }
             }
@@ -160,6 +175,8 @@ background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba
             circuitInterval = setInterval(updatePoseAndOverlay, countdownTime * 1000); // Update every 15 seconds
             startCountdown(); // Start the countdown
         }
+
+
 
         function startCountdown() {
             let remainingTime = countdownTime;
@@ -223,8 +240,13 @@ background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba
 
         <div class="button-container">
             <button class="glass-button" onclick="cyclePose()">Next Pose</button>
-            <button class="glass-button" onclick="startCircuit()">Start Circuit</button>
+            <button class="glass-button" id="start_button" onclick="startCircuit()">Start Circuit</button>
         </div>
+    </div>
+
+
+    <div class="score-box">
+
     </div>
     
 </body>
