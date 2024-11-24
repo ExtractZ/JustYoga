@@ -319,6 +319,7 @@ def set_current_pose():
         return jsonify({"error": f"Pose '{pose_name}' not found"}), 400
 
     pose_library.current_pose_name = pose_name
+    pose_tracker.reset()
     return jsonify({"message": f"Current pose set to '{pose_name}'"})
 
 @app.route("/get_pose_list", methods=["POST"])
@@ -328,7 +329,7 @@ def get_pose_list():
     if not pose_names:
         return jsonify({"error": "No poses available"}), 400
     # Select up to 5 poses for the circuit
-    circuit_poses = pose_names[:5]
+    circuit_poses = pose_names[:6]
     return jsonify({"poses": circuit_poses})
 
 @app.route("/get_status", methods=["GET"])
