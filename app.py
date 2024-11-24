@@ -6,6 +6,8 @@ import os
 import json
 import time
 from typing import Dict, Tuple
+from scipy.interpolate import splprep, splev
+
 
 app = Flask(__name__)
 
@@ -233,6 +235,226 @@ pose_library = PoseLibrary('poses')
 pose_tracker = PoseTracker(threshold=20.0, hold_time=5.0)
 pose_library.cycle_pose()
 
+
+
+# ... (keep existing imports and setup code)
+
+def create_body_contour(points: Dict[int, Tuple[int, int]], height: int, width: int):
+    """Create a cartoonish body contour with a neck connecting the head and body"""
+
+    def get_body_proportions() -> dict:
+        """Get cartoonish body proportions"""
+        height_unit = height * 0.01
+        return {
+            'head_radius': height_unit * 8.0,
+            'body_width': height_unit * 18.0,
+            'limb_thickness': height_unit * 7.0,
+            'neck_width': height_unit * 6.0,  # Width of the neck
+            'neck_height': height_unit * 7.0  # Height of the neck
+        }
+
+    def create_rounded_rectangle(top_center, bottom_center, top_width, bottom_width, roundness=0.1):
+        """
+        Create a rounded rectangle shape using interpolated points and smooth corners
+        with Bezier curve approximation for better rounding.
+        """
+        # Calculate corner points
+        top_left = (top_center[0] - top_width // 2, top_center[1])
+        top_right = (top_center[0] + top_width // 2, top_center[1])
+        bottom_left = (bottom_center[0] - bottom_width // 2, bottom_center[1])
+        bottom_right = (bottom_center[0] + bottom_width // 2, bottom_center[1])
+
+        height = bottom_center[1] - top_center[1]
+        corner_radius = int(min(top_width, bottom_width, height) * roundness)
+        
+        # Number of points to generate for each curved section
+        curve_points = 15  # Increased number of points for smoother curves
+        
+        points = []
+        
+        def create_bezier_curve(p0, p1, p2, num_points):
+            """Create a quadratic Bezier curve between points"""
+            curve = []
+            for t in np.linspace(0, 1, num_points):
+                # Quadratic Bezier formula
+                x = (1 - t)**2 * p0[0] + 2 * (1 - t) * t * p1[0] + t**2 * p2[0]
+                y = (1 - t)**2 * p0[1] + 2 * (1 - t) * t * p1[1] + t**2 * p2[1]
+                curve.append([int(x), int(y)])
+            return curve
+
+        def create_edge_points(start, end, num_points):
+            """Create smoothly interpolated points along an edge"""
+            points = []
+            for t in np.linspace(0, 1, num_points):
+                x = int(start[0] + (end[0] - start[0]) * t)
+                y = int(start[1] + (end[1] - start[1]) * t)
+                points.append([x, y])
+            return points
+
+        # Top edge with rounded corners
+        top_left_corner = (top_left[0] + corner_radius, top_left[1])
+        top_right_corner = (top_right[0] - corner_radius, top_right[1])
+        
+        # Top-left corner curve
+        control_point_tl = (top_left[0], top_left[1])
+        points.extend(create_bezier_curve(
+            (top_left[0], top_left[1] + corner_radius),
+            control_point_tl,
+            top_left_corner,
+            curve_points
+        ))
+        
+        # Top edge
+        points.extend(create_edge_points(top_left_corner, top_right_corner, 20))
+        
+        # Top-right corner curve
+        control_point_tr = (top_right[0], top_right[1])
+        points.extend(create_bezier_curve(
+            top_right_corner,
+            control_point_tr,
+            (top_right[0], top_right[1] + corner_radius),
+            curve_points
+        ))
+        
+        # Right edge
+        right_edge_start = (top_right[0], top_right[1] + corner_radius)
+        right_edge_end = (bottom_right[0], bottom_right[1] - corner_radius)
+        points.extend(create_edge_points(right_edge_start, right_edge_end, 30))
+        
+        # Bottom-right corner curve
+        control_point_br = (bottom_right[0], bottom_right[1])
+        points.extend(create_bezier_curve(
+            (bottom_right[0], bottom_right[1] - corner_radius),
+            control_point_br,
+            (bottom_right[0] - corner_radius, bottom_right[1]),
+            curve_points
+        ))
+        
+        # Bottom edge
+        points.extend(create_edge_points(
+            (bottom_right[0] - corner_radius, bottom_right[1]),
+            (bottom_left[0] + corner_radius, bottom_left[1]),
+            20
+        ))
+        
+        # Bottom-left corner curve
+        control_point_bl = (bottom_left[0], bottom_left[1])
+        points.extend(create_bezier_curve(
+            (bottom_left[0] + corner_radius, bottom_left[1]),
+            control_point_bl,
+            (bottom_left[0], bottom_left[1] - corner_radius),
+            curve_points
+        ))
+        
+        # Left edge
+        left_edge_start = (bottom_left[0], bottom_left[1] - corner_radius)
+        left_edge_end = (top_left[0], top_left[1] + corner_radius)
+        points.extend(create_edge_points(left_edge_start, left_edge_end, 30))
+
+        return np.array(points)
+
+    # Initialize mask
+    contour_mask = np.zeros((height, width), dtype=np.uint8)
+
+    aura_mask = np.zeros((height, width), dtype=np.uint8)
+    inner_aura_mask = np.zeros((height, width), dtype=np.uint8)
+
+
+    props = get_body_proportions()
+
+    # Calculate head position dynamically
+    torso_landmarks = [11, 12, 23, 24]  # shoulders and hips
+    if all(idx in points for idx in torso_landmarks):
+        # Calculate shoulder and hip centers
+        shoulders_center = np.array((np.array(points[11]) + np.array(points[12])) // 2)
+        hips_center = np.array((np.array(points[23]) + np.array(points[24])) // 2)
+
+    
+        hips_center[1] += int(props['neck_height'] * 0.5)
+        shoulders_center[1] -= int(props['neck_height'] * 0.5)
+
+        # Interpolate the head position along the line formed by shoulders and hips
+        torso_vector = shoulders_center - hips_center
+        torso_length = np.linalg.norm(torso_vector)
+        torso_unit_vector = torso_vector / torso_length if torso_length > 0 else np.array([0, -1])
+
+        head_position = shoulders_center + torso_unit_vector * props['head_radius'] * 1
+        head_position = tuple(map(int, head_position))
+
+        # Draw head
+        cv2.circle(contour_mask, head_position, int(props['head_radius']), 255, -1, cv2.LINE_AA)
+        cv2.circle(aura_mask, head_position, int(props['head_radius']), 255, -1, cv2.LINE_AA)
+
+        # Calculate neck dimensions
+        neck_top_center = (shoulders_center[0], shoulders_center[1] - int(props['neck_height'] / 2))
+        neck_bottom_center = (shoulders_center[0], shoulders_center[1] + int(props['neck_height'] / 2))
+
+        neck_points = create_rounded_rectangle(
+            tuple(map(int, neck_top_center)),
+            tuple(map(int, neck_bottom_center)),
+            int(props['neck_width']),
+            int(props['neck_width']),
+            roundness=0.3
+        )
+
+        # Draw neck
+        if len(neck_points) > 0:
+            cv2.fillPoly(contour_mask, [neck_points], 255, cv2.LINE_AA)
+            cv2.fillPoly(aura_mask, [neck_points], 255, cv2.LINE_AA)
+
+        # Create rounded body shape
+        body_points = create_rounded_rectangle(
+            tuple(map(int, shoulders_center)),
+            tuple(map(int, hips_center)),
+            int(props['body_width']),
+            int(props['body_width'] * 0.8),
+            roundness=0.3
+        )
+
+        # Draw body
+        if len(body_points) > 0:
+            cv2.fillPoly(contour_mask, [body_points], 255, cv2.LINE_AA)
+            cv2.fillPoly(aura_mask, [body_points], 255, cv2.LINE_AA)
+
+    # Draw limbs
+    def draw_limb(start_idx, mid_idx, end_idx):
+        if all(idx in points for idx in [start_idx, mid_idx, end_idx]):
+            thickness = int(props['limb_thickness'])
+
+            # Draw segments
+            cv2.line(contour_mask, points[start_idx], points[mid_idx], 255, thickness, cv2.LINE_AA)
+            cv2.line(contour_mask, points[mid_idx], points[end_idx], 255, thickness, cv2.LINE_AA)
+
+            # Add joint circles for smooth connections
+            cv2.circle(contour_mask, points[mid_idx], thickness // 2, 255, -1, cv2.LINE_AA)
+            
+            cv2.line(aura_mask, points[start_idx], points[mid_idx], 255, thickness, cv2.LINE_AA)
+            cv2.line(aura_mask, points[mid_idx], points[end_idx], 255, thickness, cv2.LINE_AA)
+            cv2.circle(aura_mask, points[mid_idx], thickness // 2, 255, -1, cv2.LINE_AA)
+
+
+    # Draw limbs
+    draw_limb(11, 13, 15)  # Left arm
+    draw_limb(12, 14, 16)  # Right arm
+    draw_limb(23, 25, 27)  # Left leg
+    draw_limb(24, 26, 28)  # Right leg
+
+    
+    # Threshold the aura to make it more pronounced
+    inner_aura_blur = cv2.GaussianBlur(aura_mask, (21, 21), 5)
+    _, inner_aura_thresh = cv2.threshold(inner_aura_blur, 30, 255, cv2.THRESH_BINARY)
+
+
+    outer_aura_blur = cv2.GaussianBlur(aura_mask, (45, 45), 15)
+    _, outer_aura_thresh = cv2.threshold(outer_aura_blur, 15, 255, cv2.THRESH_BINARY)
+    
+    # Final smoothing
+    kernel_size = 5
+    contour_mask = cv2.GaussianBlur(contour_mask, (kernel_size, kernel_size), 2)
+    _, contour_mask = cv2.threshold(contour_mask, 127, 255, cv2.THRESH_BINARY)
+
+    return contour_mask, inner_aura_thresh, outer_aura_thresh
+
 def generate_frames():
     cap = cv2.VideoCapture(0)
     while cap.isOpened():
@@ -243,62 +465,84 @@ def generate_frames():
         frame = cv2.flip(frame, 1)
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = pose.process(rgb_frame)
-
-        # Use the updated current_pose_name to fetch reference landmarks
         reference_landmarks = pose_library.get_reference_landmarks(pose_library.current_pose_name)
 
-        # Create overlay for reference pose
         height, width = frame.shape[:2]
-        overlay = np.zeros_like(frame, dtype=np.uint8)
         
-        # Process and draw current pose landmarks
-        overall_match = 0
-        if results.pose_landmarks:
-            mp_drawing.draw_landmarks(
-                frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
-                mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=2, circle_radius=4),
-                mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=2, circle_radius=2)
-            )
-            
-            # Calculate distances and similarity
-            distances = calculate_landmark_distances(results.pose_landmarks, reference_landmarks)
-            overall_match = calculate_pose_similarity(distances)
-            
-            # Update pose tracker
-            pose_tracker.update(overall_match)
-
-        # Draw reference landmarks with enhanced visualization
-        points = {}
+        # Create points dictionary for reference pose
+        reference_points = {}
         for idx, (x, y) in reference_landmarks.items():
             px = int(x * width)
             py = int(y * height)
-            points[idx] = (px, py)
-            cv2.circle(overlay, (px, py), 8, (0, 255, 255), -1)
-
-        # Draw enhanced connections
-        for connection in POSE_CONNECTIONS:
-            if connection[0] in points and connection[1] in points:
-                cv2.line(overlay, points[connection[0]], points[connection[1]], (0, 255, 255), 2)
-
-        # Add overlay with transparency
-        frame = cv2.addWeighted(frame, 1, overlay, 0.3, 0)
+            reference_points[idx] = (px, py)
         
-        # Draw status overlay
+        # Create contour and aura masks
+        contour_mask, inner_aura_mask, outer_aura_mask = create_body_contour(reference_points, height, width)
+        
+        # Create colored overlays
+        contour_overlay = np.zeros_like(frame, dtype=np.uint8)
+        inner_aura_overlay = np.zeros_like(frame, dtype=np.uint8)
+        outer_aura_overlay = np.zeros_like(frame, dtype=np.uint8)
+        
+        # Calculate overall match before setting colors
+        overall_match = 0
+        if results.pose_landmarks:
+            landmark_overlay = np.zeros_like(frame, dtype=np.uint8)
+            
+            mp_drawing.draw_landmarks(
+                landmark_overlay, 
+                results.pose_landmarks, 
+                mp_pose.POSE_CONNECTIONS,
+                mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=2, circle_radius=3),
+                mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=2, circle_radius=1)
+            )
+            
+            frame = cv2.addWeighted(frame, 1, landmark_overlay, 0.0, 0)
+            
+            distances = calculate_landmark_distances(results.pose_landmarks, reference_landmarks)
+            overall_match = calculate_pose_similarity(distances)
+            pose_tracker.update(overall_match)
+
+        # Set colors based on overall_match
+        if overall_match >= 80.0:
+            # Colors when pose matches or exceeds threshold
+            contour_overlay[contour_mask > 0] = [0, 255, 0]  # Bright green
+            inner_aura_overlay[inner_aura_mask > 0] = [50, 255, 50]  # Golden yellow
+            outer_aura_overlay[outer_aura_mask > 0] = [50, 255, 50]  # Orange
+        else:
+            # Default colors when pose doesn't match threshold
+            contour_overlay[contour_mask > 0] = [0, 0, 255]  # Bright red
+            inner_aura_overlay[inner_aura_mask > 0] = [50, 50, 255]  # White-green
+            outer_aura_overlay[outer_aura_mask > 0] = [50, 50, 255]  # Light green
+        
+        # Layer the aura effects with higher opacity
+        # Add outer aura first (more transparent)
+        frame = cv2.addWeighted(frame, 1, outer_aura_overlay, 0.4, 0)
+        
+        # Add inner aura (more opaque)
+        frame = cv2.addWeighted(frame, 1, inner_aura_overlay, 0.6, 0)
+        
+        # Add main contour last
+        frame = cv2.addWeighted(frame, 1, contour_overlay, 0.5, 0)
+
         draw_status_overlay(frame, overall_match, pose_tracker, pose_library.current_pose_name)
 
-        # Encode frame for streaming
         _, buffer = cv2.imencode(".jpg", frame)
         yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n")
 
     cap.release()
 
-@app.route("/")
-def index():
-    return render_template("index.html")
+# ... (keep the rest of the code the same)
 
-@app.route("/video_feed")
+# Keep the original Flask routes unchanged
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/video_feed')
 def video_feed():
-    return Response(generate_frames(), mimetype="multipart/x-mixed-replace; boundary=frame")
+    return Response(generate_frames(),
+                   mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route("/cycle_pose", methods=["POST"])
 def cycle_pose():
