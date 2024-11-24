@@ -15,7 +15,7 @@ pip install mediapipe opencv-python
 
 1. Clone this repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/ExtractZ/JustYoga.git
 cd JustYoga
 ```
 2. Run the application
