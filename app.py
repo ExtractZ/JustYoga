@@ -5,6 +5,7 @@ import numpy as np
 import os
 import json
 import time
+import random
 from typing import Dict, Tuple
 from scipy.interpolate import splprep, splev
 
@@ -572,6 +573,7 @@ def get_pose_list():
     pose_names = list(pose_library.poses.keys())
     if not pose_names:
         return jsonify({"error": "No poses available"}), 400
+    random.shuffle(pose_names)
     # Select up to 5 poses for the circuit
     circuit_poses = pose_names[:6]
     return jsonify({"poses": circuit_poses})
