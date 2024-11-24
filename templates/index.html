@@ -16,9 +16,9 @@ background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba
             background-size: cover;
             background-position: center;
             padding-left: 10px;
-            padding-right: 10px;
+            padding-right: 7px;
         }
-        img {
+        .video {
             display: block;
             margin: 0 auto;
             border-radius: 15px; 
@@ -108,7 +108,7 @@ background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba
         let poses = [];
         let circuitInterval;
         let countdownInterval;
-        let countdownTime = 5; // Countdown time in seconds
+        let countdownTime = 15; // Countdown time in seconds
         let valueIndex = 0;
         let global_val = 0;
         // Fetches the next pose from the server
@@ -116,7 +116,7 @@ background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba
             return fetch('/cycle_pose', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById("current-pose").innerText = "Current Pose: " + data.pose_name;
+                    document.getElementById("current-pose").innerText = data.pose_name;
                 });
         }
 
@@ -150,7 +150,7 @@ background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba
              setTimeout(function() {
                 audio.play();
                 console.log("Playing audio now.");
-            }, 5000);
+            }, 15000);
         }
         function stopAudio(){
             var audio = document.getElementById('myAudio');
@@ -166,7 +166,7 @@ background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba
         
             function updatePoseAndOverlay() {
                 const currentPose = poses[poseIndex];
-                document.getElementById("current-pose").innerText = "Current Pose: " + currentPose;
+                document.getElementById("current-pose").innerText = currentPose;
 
                 // Update the server with the current pose
                 fetch('/set_current_pose', {
@@ -247,16 +247,17 @@ background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba
     
     
     <div class="pose-count">
-        <h1 style="font-family: 'Inter', sans-serif;">Just Yoga</h1>
+        <!-- <h1 style="font-family: 'Inter', sans-serif;">Just Yoga</h1> -->
+         <img src="static/just_dance-removebg-preview.png" width="250" height="200" style="margin-left: -90px; margin-top: -45px;">
         <audio id="myAudio">
             <source src="static/music/music.mp3" type="audio/mpeg">
             Your browser does not support the audio element.
         </audio>
-        <div style="display: flex; margin-top: 0px; ">
+        <div style="display: flex; margin-top: 5px; outline: 1px solid black; padding-left: 30px; padding-right: 30px; height: 90px; border-radius: 40px; box-shadow: 4px 3px 2px rgba(0, 0, 0, 0.3)">
             <h1 class="score-status" id="status-match" style="padding-right: 15px; ">Score: Loading...</h1>
             <p class="pose-status" id="status-pose"></p>
             <h1 class="score-status" id="status-best-match">Best Score: Loading...</h1>
-          </div>
+        </div>
         
     </div>
     
@@ -265,12 +266,19 @@ background: linear-gradient(172deg, rgba(247,247,247,0.385893485915493) 0%, rgba
         
         
     </div>
-    <div class="main-container" style=" align-items: center; padding-top: 50px;">
-        <h1 id="current-pose" style="margin-right: 20px;">Current Pose: Loading...</h1>
-        <h1 id="countdown">Next Pose in: 15s</h1>
+    <div class="main-container" style="align-items: center; padding-top: 50px; display: flex; justify-content: center;">
+        <div>
+            <div style="display: flex;">
+                <p style="margin-right: 10px; font-size: 26px;">Current pose: </p>
+                <h1 id="current-pose" style="margin-right: 20px;">Loading...</h1>
+            </div>
+            
+            <p id="countdown" style="font-size: 30px; margin-top: -20px;">Next Pose in: 15s</p>
+        </div>
+        
     </div>
     <div class="main-container">
-        <img src="/video_feed" width="800" alt="Yoga Pose Feed">
+        <img  class="video" src="/video_feed" width="800" alt="Yoga Pose Feed">
 
 
         <div class="button-container">

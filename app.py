@@ -48,7 +48,7 @@ POSE_CONNECTIONS = [
 ]
 
 class PoseTracker:
-    def __init__(self, threshold=80.0, hold_time=5.0):
+    def __init__(self, threshold=70.0, hold_time=5.0):
         self.threshold = threshold
         self.required_hold_time = hold_time
         self.start_time = None
@@ -196,12 +196,12 @@ def draw_status_overlay(frame, match_percentage, pose_tracker, current_pose):
     height, width = frame.shape[:2]
     
     # Define radius before using it
-    radius = 30  # Adjust the size of the pie chart as needed
+    radius = 200  # Adjust the size of the pie chart as needed
     
     # Draw holding progress pie
     if pose_tracker.is_holding:
         progress = pose_tracker.get_progress()
-        center = (int(width - radius - 10), height - 30)  # Adjust position as needed
+        center = (int(width - radius - 40), height - 250)  # Adjust position as needed
         draw_loading_pie(frame, progress, center, radius)
         
     
@@ -232,7 +232,7 @@ def draw_status_overlay(frame, match_percentage, pose_tracker, current_pose):
 
 
 pose_library = PoseLibrary('poses')
-pose_tracker = PoseTracker(threshold=20.0, hold_time=5.0)
+pose_tracker = PoseTracker(threshold=70.0, hold_time=5.0)
 pose_library.cycle_pose()
 
 
@@ -504,7 +504,7 @@ def generate_frames():
             pose_tracker.update(overall_match)
 
         # Set colors based on overall_match
-        if overall_match >= 80.0:
+        if overall_match >= 70.0:
             # Colors when pose matches or exceeds threshold
             contour_overlay[contour_mask > 0] = [0, 255, 0]  # Bright green
             inner_aura_overlay[inner_aura_mask > 0] = [50, 255, 50]  # Golden yellow
